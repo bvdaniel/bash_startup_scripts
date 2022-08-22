@@ -1,0 +1,52 @@
+
+    
+    //descarga repo
+
+sudo apt-get update
+sudo apt-get install git
+git clone https://github.com/bvdaniel/orienta_web.git
+
+//instala nginx, php, y psql
+sudo apt-get install -y git nginx php7.4 php7.4-fpm php-pgsql php7.4-mysql php7.4-dev \
+    php7.4-mbstring php7.4-zip php-pear pkg-config php7.4-pgsql
+
+sudo apt-get install ufw
+sudo ufw enable
+sudo ufw allow 'Nginx HTTP'
+sudo ufw allow 'Nginx HTTPS'
+sudo ufw allow 'Nginx Full'
+sudo rm /etc/nginx/sites-enabled/default
+sudo cp -R ./ /var/www/
+sudo chown -R $USER:$USER /var/www/orienta_web 
+sudo chown -R $USER:$USER /etc/nginx/sites-available/
+
+// Crea el archivo del server con la info que nos importa
+sudo cat <<EOF> /etc/nginx/sites-available/orienta_web
+server{
+listen 80;
+listen [::]:80;
+root /var/www/orienta_web;
+index index.html index.php;
+server_name orienta-webserver;
+location / {
+try_files $uri $uri/ =404;
+}
+location ~ \.php$ {
+        include snippets/fastcgi-php.conf;
+        fastcgi_pass unix:/run/php/php7.4-fpm.sock;
+}
+location ~ /\.ht {
+        deny all;
+}
+}
+EOF
+//No hay que agregar el host a /etc/nginx/hosts pues GCP lo agrega solo
+//Crea el link simbólico de available a enabled:
+sudo ln -s /etc/nginx/sites-available/orienta_web /etc/nginx/sites-enabled/orienta_web
+
+// Abilita el pdo en php.ini
+// sudo nano "loaded config file"
+// ctrl+w:pdo
+// habilita pdo_psql y pgsql, cerrar y restart.
+
+sudo systemctl restart nginx
